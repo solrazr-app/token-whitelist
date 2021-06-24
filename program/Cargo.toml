@@ -1,0 +1,23 @@
+[package]
+name = "solr-token-whitelist"
+version = "1.0.2"
+edition = "2018"
+description = "SolRazr Token Whitelist Program"
+authors = ["sreekanth@solrazr.com"]
+repository = "https://github.com/solrazr-app/solr-token-whitelist"
+license-file = "LICENSE.txt"
+
+[features]
+no-entrypoint = []
+
+[dependencies]
+solana-program = "1.6.6"
+thiserror = "1.0.21"
+spl-token = {version = "3.1", features = ["no-entrypoint"]}
+arrayref = "0.3.6"
+borsh = "0.9.0"
+num-derive = "0.3"
+num-traits = "0.2"
+
+[lib]
+crate-type = ["cdylib", "lib"]
