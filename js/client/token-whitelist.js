@@ -148,13 +148,7 @@ export class TokenWhitelist {
     whitelistSize: number | Numberu64,
   ): Promise<TransactionSignature> {
 
-    const INITIALIZED_BYTES = 1;
-    const PUBKEY_BYTES = 32;
-    const WHITELIST_SIZE_BYTES = 8;
-    const MAP_LENGTH = 4;
-    const MAP_BYTES = 5116;
-    const ACCOUNT_STATE_SPACE =
-      INITIALIZED_BYTES + PUBKEY_BYTES + WHITELIST_SIZE_BYTES + MAP_LENGTH + MAP_BYTES;
+    const ACCOUNT_STATE_SPACE = 500000; // sufficient to hold at least 50 pubkeys in a map
 
     const createWhitelistAccountInstruction = SystemProgram.createAccount({
         space: ACCOUNT_STATE_SPACE,
