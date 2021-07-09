@@ -21,7 +21,7 @@ pub enum TokenWhitelistInstruction {
     /// Accounts expected by AddToWhitelist
     ///
     /// 0. `[signer]` Owner of the whitelist and signer
-    /// 1. `[]` Account holding whitelist init info
+    /// 1. `[writable]` Account holding whitelist init info
     /// 2. `[]` Account to be added to the whitelist
     AddToWhitelist {
         // account_to_add: Pubkey, // token account to be whitelisted
@@ -30,7 +30,7 @@ pub enum TokenWhitelistInstruction {
     /// Accounts expected by RemoveFromWhitelist
     ///
     /// 0. `[signer]` Owner of the whitelist and signer
-    /// 1. `[]` Account holding whitelist init info
+    /// 1. `[writable]` Account holding whitelist init info
     /// 2. `[]` Account to be removed from the whitelist
     RemoveFromWhitelist {
         // account_to_remove: Pubkey, // token account to be removed from the whitelist
@@ -39,10 +39,19 @@ pub enum TokenWhitelistInstruction {
     /// Accounts expected: SetAllocationToZero
     ///
     /// 0. `[signer]` Owner of the whitelist and signer
-    /// 1. `[]` Account holding whitelist init info
+    /// 1. `[writable]` Account holding whitelist init info
     /// 2. `[]` Account to be reset to 0
     SetAllocationToZero {
         // account_to_reset: Pubkey, // token account to be reset to 0
+    },
+
+    /// Accounts expected: CloseWhitelistAccount
+    ///
+    /// 0. `[signer]` Owner of the whitelist and signer
+    /// 1. `[writable]` Account holding whitelist init info
+    /// 2. `[]` Destination account to transfer lamports to
+    CloseWhitelistAccount {
+        // dest_account: Pubkey, // token account to be reset to 0
     },
 }
 
@@ -70,8 +79,12 @@ impl TokenWhitelistInstruction {
                 Self::RemoveFromWhitelist {}
             },
             3 => {
-                // let (account_to_remove, _rest) = Self::unpack_pubkey(rest)?;
+                // let (account_to_reset, _rest) = Self::unpack_pubkey(rest)?;
                 Self::SetAllocationToZero {}
+            },
+            4 => {
+                // let (dest_account, _rest) = Self::unpack_pubkey(rest)?;
+                Self::CloseWhitelistAccount {}
             },
             _ => return Err(InvalidInstruction.into()),
         })
@@ -93,6 +106,9 @@ impl TokenWhitelistInstruction {
             }
             &Self::SetAllocationToZero{} => {
                 buf.push(3);
+            }
+            &Self::CloseWhitelistAccount{} => {
+                buf.push(4);
             }
         };
         buf

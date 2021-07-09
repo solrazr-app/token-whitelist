@@ -16,6 +16,7 @@ const MAP_BYTES: usize = 5116;
 const ACCOUNT_STATE_SPACE: usize =
     INITIALIZED_BYTES + PUBKEY_BYTES + WHITELIST_SIZE_BYTES + MAP_LENGTH + MAP_BYTES; // 5161 bytes
 
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TokenWhitelist {
     pub is_initialized: bool,
     pub init_pubkey: Pubkey,
@@ -122,4 +123,16 @@ fn transform_u32_to_array_of_u8(x: u32) -> [u8; 4] {
     let b3: u8 = ((x >> 8) & 0xff) as u8;
     let b4: u8 = (x & 0xff) as u8;
     return [b4, b3, b2, b1];
+}
+
+/// Struct for small data
+#[derive(Clone, Debug, Default, BorshSerialize, BorshDeserialize, PartialEq)]
+pub struct SmallData {
+    /// The data contained by the account, could be anything or serializable
+    pub bytes: [u8; Self::DATA_SIZE],
+}
+
+impl SmallData {
+    /// small data for easy testing
+    pub const DATA_SIZE: usize = 8;
 }

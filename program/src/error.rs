@@ -22,6 +22,12 @@ pub enum TokenWhitelistError {
     /// Signer Not Account Owner
     #[error("Signer Not Account Owner")]
     NotOwner,
+    /// Invalid authority provided
+    #[error("Invalid authority provided")]
+    InvalidAuthority,
+    /// Calculation overflow
+    #[error("Calculation overflow")]
+    Overflow,
 }
 
 impl From<TokenWhitelistError> for ProgramError {

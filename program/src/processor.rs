@@ -9,8 +9,11 @@ use solana_program::{
     pubkey::Pubkey,
     sysvar::{rent::Rent, Sysvar},
 };
-
-use crate::{error::TokenWhitelistError, instruction::TokenWhitelistInstruction, state::TokenWhitelist};
+use crate::{
+    error::TokenWhitelistError,
+    instruction::TokenWhitelistInstruction,
+    state::TokenWhitelist,
+};
 
 pub struct Processor;
 impl Processor {
@@ -51,10 +54,16 @@ impl Processor {
                     program_id
                 )
             }
+            TokenWhitelistInstruction::CloseWhitelistAccount {} => {
+                msg!("Instruction: CloseWhitelistAccount");
+                Self::process_close_whitelist_account(
+                    accounts,
+                    program_id
+                )
+            }
         }
     }
 
-    /// Processes [InitTokenWhitelist](enum.TokenWhitelistInstruction.html) instruction
     fn process_init_whitelist(
         accounts: &[AccountInfo],
         max_whitelist_size: u64,
@@ -90,7 +99,6 @@ impl Processor {
         Ok(())
     }
 
-    /// Processes [AddToWhitelist](enum.TokenWhitelistInstruction.html) instruction
     fn process_add_whitelist(
         accounts: &[AccountInfo],
         _program_id: &Pubkey,
@@ -124,7 +132,6 @@ impl Processor {
         Ok(())
     }
 
-    /// Processes [RemoveFromWhitelist](enum.TokenWhitelistInstruction.html) instruction
     fn process_remove_whitelist(
         accounts: &[AccountInfo],
         _program_id: &Pubkey,
@@ -157,7 +164,6 @@ impl Processor {
         Ok(())
     }
 
-    /// Processes [SetAllocationToZero](enum.TokenWhitelistInstruction.html) instruction
     fn process_set_allocation_to_zero(
         accounts: &[AccountInfo],
         _program_id: &Pubkey,
@@ -190,6 +196,53 @@ impl Processor {
 
         Ok(())
     }
+
+    fn process_close_whitelist_account(
+        accounts: &[AccountInfo],
+        _program_id: &Pubkey,
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+
+        let authority_account = next_account_info(account_info_iter)?;
+        let token_whitelist_account = next_account_info(account_info_iter)?;
+        let destination_account = next_account_info(account_info_iter)?;
+
+        let token_whitelist_state = TokenWhitelist::unpack_from_slice(&token_whitelist_account.data.borrow())?;
+        if !token_whitelist_state.is_initialized() {
+            msg!("token whitelist needs to be initialized before attempting to close");
+            return Err(TokenWhitelistError::TokenWhitelistNotInit.into());
+        }
+
+        Self::check_authority(authority_account, &token_whitelist_state.init_pubkey)?;
+
+        let destination_starting_lamports = destination_account.lamports();
+        let account_lamports = token_whitelist_account.lamports();
+        **token_whitelist_account.lamports.borrow_mut() = 0;
+        **destination_account.lamports.borrow_mut() = destination_starting_lamports
+            .checked_add(account_lamports)
+            .ok_or(TokenWhitelistError::Overflow)?;
+        // token_whitelist_state.data = SmallData::default();
+        // token_whitelist_state
+        //         .serialize(&mut *token_whitelist_account.data.borrow_mut())
+        //         .map_err(|e| e.into());
+
+        Ok(())
+    }
+
+    fn check_authority(
+        authority_info: &AccountInfo,
+        expected_authority: &Pubkey,
+    ) -> ProgramResult {
+        if expected_authority != authority_info.key {
+            msg!("Invalid authority provided");
+            return Err(TokenWhitelistError::InvalidAuthority.into());
+        }
+        if !authority_info.is_signer {
+            msg!("Authority signature missing");
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+        Ok(())
+    }
 }
 
 impl PrintProgramError for TokenWhitelistError {
@@ -204,6 +257,8 @@ impl PrintProgramError for TokenWhitelistError {
             TokenWhitelistError::TokenWhitelistNotOwner => msg!("Error: Signer Not Token Whitelist Owner"),
             TokenWhitelistError::TokenWhitelistSizeExceeds => msg!("Error: Token Whitelist Size Exceeds"),
             TokenWhitelistError::NotOwner => msg!("Error: Signer Not Account Owner"),
+            TokenWhitelistError::InvalidAuthority => msg!("Error: Invalid authority provided"),
+            TokenWhitelistError::Overflow => msg!("Error: Calculation overflow"),
         }
     }
 }
