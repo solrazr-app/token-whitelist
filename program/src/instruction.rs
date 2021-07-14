@@ -49,7 +49,7 @@ pub enum TokenWhitelistInstruction {
     ///
     /// 0. `[signer]` Owner of the whitelist and signer
     /// 1. `[writable]` Account holding whitelist init info
-    /// 2. `[]` Destination account to transfer lamports to
+    /// 2. `[writable]` Destination account to transfer lamports to
     CloseWhitelistAccount {
         // dest_account: Pubkey, // token account to be reset to 0
     },
@@ -168,6 +168,16 @@ mod tests {
         let check = TokenWhitelistInstruction::SetAllocationToZero{};
         let packed = check.pack();
         let expect = vec![3];
+        assert_eq!(packed, expect);
+        let unpacked = TokenWhitelistInstruction::unpack(&expect).unwrap();
+        assert_eq!(unpacked, check);
+    }
+
+    #[test]
+    fn test_pack_close_whitelist_account() {
+        let check = TokenWhitelistInstruction::CloseWhitelistAccount{};
+        let packed = check.pack();
+        let expect = vec![4];
         assert_eq!(packed, expect);
         let unpacked = TokenWhitelistInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, check);

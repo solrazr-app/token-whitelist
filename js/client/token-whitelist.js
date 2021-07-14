@@ -321,4 +321,60 @@ export class TokenWhitelist {
       data,
     });
   }
+
+  /**
+   * Close Whitelist Account
+   *
+   * @param initAuthority Account calling the init whitelist
+   * @param destinationAccount Account to transfer lamports from the whitelist account
+   */
+  async closeWhitelistAccount(
+    initAuthority: Account,
+    destinationAccount: PublicKey,
+  ): Promise<TransactionSignature> {
+    return await sendAndConfirmTransaction(
+      'CloseWhitelistAccount',
+      this.connection,
+      new Transaction().add(
+        TokenWhitelist.closeWhitelistAccountInstruction(
+          this.tokenWhitelistProgramId,
+          destinationAccount,
+          initAuthority.publicKey,
+          this.tokenWhitelistAccount.publicKey,
+        ),
+      ),
+      this.payer,
+      initAuthority,
+    );
+  }
+
+  static closeWhitelistAccountInstruction(
+    tokenWhitelistProgramId: PublicKey,
+    destinationAccount: PublicKey,
+    initAuthority: PublicKey,
+    tokenWhitelistAccount: PublicKey,
+  ): TransactionInstruction {
+    const dataLayout = BufferLayout.struct([
+      BufferLayout.u8('instruction'),
+    ]);
+
+    const data = Buffer.alloc(dataLayout.span);
+    dataLayout.encode(
+      {
+        instruction: 4, // CloseWhitelistAccount instruction
+      },
+      data,
+    );
+
+    const keys = [
+      {pubkey: initAuthority, isSigner: true, isWritable: false},
+      {pubkey: tokenWhitelistAccount, isSigner: false, isWritable: true},
+      {pubkey: destinationAccount, isSigner: false, isWritable: true},
+    ];
+    return new TransactionInstruction({
+      keys,
+      programId: tokenWhitelistProgramId,
+      data,
+    });
+  }
 }

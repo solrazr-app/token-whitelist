@@ -36,7 +36,7 @@ let mintAuthority: Account;
 let mintUSDT: Token;
 let accountToAdd: PublicKey;
 
-const MAX_WHITELIST_SIZE = 100;
+const MAX_WHITELIST_SIZE = 50;
 
 let connection;
 async function getConnection(): Promise<Connection> {
@@ -51,7 +51,7 @@ async function getConnection(): Promise<Connection> {
 
 export async function InitTokenWhitelist(): Promise<void> {
   const connection = await getConnection();
-  payer = await newAccountWithLamports(connection, 100000000);
+  payer = await newAccountWithLamports(connection, 10000000000);
 
   console.log('>>>>> TOKEN_PROGRAM_ID: ', TOKEN_PROGRAM_ID.toString());
   console.log('>>>>> TOKEN_WHITELIST_PROGRAM_ID: ', TOKEN_WHITELIST_PROGRAM_ID.toString());
@@ -75,7 +75,7 @@ export async function InitTokenWhitelist(): Promise<void> {
 
 export async function AddToWhitelist(): Promise<void> {
   const connection = await getConnection();
-  wallet = await newAccountWithLamports(connection, 100000000);
+  let wallet = await newAccountWithLamports(connection, 100000000);
 
   accountToAdd = wallet.publicKey; // used to execute token sale
   console.log('>>>>> Account To Add To Whitelist: ', accountToAdd.toString());
@@ -104,4 +104,20 @@ export async function RemoveFromWhitelist(): Promise<void> {
 
   await sleep(500);
   console.log('Remove From Whitelist - Done');
+}
+
+export async function CloseWhitelistAccount(): Promise<void> {
+  const connection = await getConnection();
+
+  let destinationAccount = payer.publicKey;
+  console.log('>>>>> Account To Receive lamports From Whitelist Account: ', destinationAccount.toString());
+  
+  console.log('Close Whitelist Account');
+  await tokenWhitelist.closeWhitelistAccount(
+    payer,
+    destinationAccount,
+  );
+
+  await sleep(500);
+  console.log('Close Whitelist Account - Done');
 }

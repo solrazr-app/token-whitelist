@@ -13,6 +13,9 @@ export const TOKEN_PROGRAM_ID: PublicKey = new PublicKey(
 export const ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID: PublicKey = new PublicKey(
   'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL', // localnet && devnet
 );
+// export const TOKEN_WHITELIST_PROGRAM_ID: PublicKey = new PublicKey(
+//   '4ikowHMssMavQeDUaDVGPwsBcNMnU1nkzAJikMFG5mfv', // localnet && devnet (private repo)
+// );
 export const TOKEN_WHITELIST_PROGRAM_ID: PublicKey = new PublicKey(
-  '4ikowHMssMavQeDUaDVGPwsBcNMnU1nkzAJikMFG5mfv', // localnet && devnet
+  'B2VhkPRAMWQqteuFMSTMLvrbs2CKaJsj6G9o2N1rX7d6', // localnet && devnet (public repo)
 );

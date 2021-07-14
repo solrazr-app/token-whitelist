@@ -6,7 +6,7 @@ import {sleep} from './sleep';
 
 export async function newAccountWithLamports(
   connection: Connection,
-  lamports: number = 1000000,
+  lamports: number,
 ): Promise<Account> {
   
   // const keypairFile = "./keypair.json";

@@ -8,6 +8,7 @@ import {
 	InitTokenWhitelist,
 	AddToWhitelist,
   RemoveFromWhitelist,
+  CloseWhitelistAccount,
 } from './token-whitelist-test';
 
 async function main() {
@@ -18,6 +19,8 @@ async function main() {
   await AddToWhitelist();
   console.log('Run test: RemoveFromWhitelist');
   await RemoveFromWhitelist();
+  console.log('Run test: CloseWhitelistAccount');
+  await CloseWhitelistAccount();
   console.log('Success\n');
 }
 
