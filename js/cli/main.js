@@ -5,8 +5,8 @@
  */
 
 import {
-	InitTokenWhitelist,
-	AddToWhitelist,
+  InitTokenWhitelist,
+  AddToWhitelist,
   RemoveFromWhitelist,
   CloseWhitelistAccount,
 } from './token-whitelist-test';
