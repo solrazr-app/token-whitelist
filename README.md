@@ -36,6 +36,6 @@ You can modify `js/cli/main.js` and `js/cli/token-sale-test.js` to suit your nee
 
 ## Using Token Whitelist In Token Sale
 
-In order to run token sale program (https://github.com/solrazr-app/solr-token-sale), you need token whitelist to be created.
+In order to run token sale program (https://github.com/solrazr-app/solr-token-sale), you need token whitelist map to be created.
 
-You can find token whitelist account printed to console when you run the JS client above. You need to use this account when initialising token sale.
+You can find token whitelist map account printed to console when you run the JS client above. You need to use this account when initialising token sale.

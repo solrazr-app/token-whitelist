@@ -25,6 +25,7 @@ pub enum TokenWhitelistInstruction {
     /// 2. `[]` Account to be added to the whitelist
     AddToWhitelist {
         // account_to_add: Pubkey, // token account to be whitelisted
+        allocation_amount: u64, // maximum allocation amount in base tokens
     },
 
     /// Accounts expected by RemoveFromWhitelist
@@ -72,7 +73,13 @@ impl TokenWhitelistInstruction {
             },
             1 => {
                 // let (account_to_add, _rest) = Self::unpack_pubkey(rest)?;
-                Self::AddToWhitelist {}
+                let (allocation_amount, _rest) = rest.split_at(8);
+                let allocation_amount = allocation_amount
+                    .try_into()
+                    .ok()
+                    .map(u64::from_le_bytes)
+                    .ok_or(InvalidInstruction)?;
+                Self::AddToWhitelist {allocation_amount}
             },
             2 => {
                 // let (account_to_remove, _rest) = Self::unpack_pubkey(rest)?;
@@ -94,12 +101,13 @@ impl TokenWhitelistInstruction {
     pub fn pack(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(size_of::<Self>());
         match self {
-            &Self::InitTokenWhitelist { max_whitelist_size } => {
+            &Self::InitTokenWhitelist {max_whitelist_size} => {
                 buf.push(0);
                 buf.extend_from_slice(&max_whitelist_size.to_le_bytes());
             }
-            &Self::AddToWhitelist{} => {
+            &Self::AddToWhitelist {allocation_amount} => {
                 buf.push(1);
+                buf.extend_from_slice(&allocation_amount.to_le_bytes());
             }
             &Self::RemoveFromWhitelist{} => {
                 buf.push(2);
@@ -131,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_pack_init_whitelist() {
-        let whitelist_size: u64 = 100;
+        let whitelist_size: u64 = 50;
         let check = TokenWhitelistInstruction::InitTokenWhitelist {
             max_whitelist_size: whitelist_size,
         };
@@ -145,9 +153,13 @@ mod tests {
 
     #[test]
     fn test_pack_add_to_whitelist() {
-        let check = TokenWhitelistInstruction::AddToWhitelist{};
+        let allocation: u64 = 250;
+        let check = TokenWhitelistInstruction::AddToWhitelist{
+            allocation_amount: allocation,
+        };
         let packed = check.pack();
-        let expect = vec![1];
+        let mut expect = vec![1];
+        expect.extend_from_slice(&allocation.to_le_bytes());
         assert_eq!(packed, expect);
         let unpacked = TokenWhitelistInstruction::unpack(&expect).unwrap();
         assert_eq!(unpacked, check);

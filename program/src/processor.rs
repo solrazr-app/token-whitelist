@@ -25,7 +25,7 @@ impl Processor {
         let instruction = TokenWhitelistInstruction::unpack(instruction_data)?;
 
         match instruction {
-            TokenWhitelistInstruction::InitTokenWhitelist { max_whitelist_size } => {
+            TokenWhitelistInstruction::InitTokenWhitelist {max_whitelist_size} => {
                 msg!("Instruction: InitTokenWhitelist");
                 Self::process_init_whitelist(
                     accounts,
@@ -33,10 +33,11 @@ impl Processor {
                     program_id
                 )
             }
-            TokenWhitelistInstruction::AddToWhitelist {} => {
+            TokenWhitelistInstruction::AddToWhitelist {allocation_amount} => {
                 msg!("Instruction: AddToWhitelist");
                 Self::process_add_whitelist(
                     accounts,
+                    allocation_amount,
                     program_id
                 )
             }
@@ -101,6 +102,7 @@ impl Processor {
 
     fn process_add_whitelist(
         accounts: &[AccountInfo],
+        allocation_amount: u64,
         _program_id: &Pubkey,
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
@@ -125,8 +127,7 @@ impl Processor {
             return Err(TokenWhitelistError::TokenWhitelistNotOwner.into());
         }
 
-        let whitelist_amount: u64 = 250;
-        token_whitelist_state.add_keypair(&account_to_add.key.to_string(), &whitelist_amount);
+        token_whitelist_state.add_keypair(&account_to_add.key.to_string(), &allocation_amount);
         token_whitelist_state.pack_into_slice(&mut token_whitelist_account.data.borrow_mut());
 
         Ok(())
@@ -221,10 +222,6 @@ impl Processor {
         **destination_account.lamports.borrow_mut() = destination_starting_lamports
             .checked_add(account_lamports)
             .ok_or(TokenWhitelistError::Overflow)?;
-        // token_whitelist_state.data = SmallData::default();
-        // token_whitelist_state
-        //         .serialize(&mut *token_whitelist_account.data.borrow_mut())
-        //         .map_err(|e| e.into());
 
         Ok(())
     }

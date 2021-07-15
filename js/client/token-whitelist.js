@@ -57,6 +57,18 @@ export class Numberu64 extends BN {
   }
 }
 
+export const TOKEN_WHITELIST_MAP_DATA_LAYOUT = BufferLayout.struct([
+  BufferLayout.u8("isInitialized"),
+  Layout.publicKey("initPubkey"),
+  Layout.uint64("maxWhitelistAccounts"),
+]);
+
+export const TOKEN_WHITELIST_ACCOUNT_DATA_LAYOUT = BufferLayout.struct([
+  BufferLayout.u8("isInitialized"),
+  Layout.publicKey("initPubkey"),
+  Layout.uint64("maxWhitelistSize"),
+]);
+
 /**
  * A program to exchange tokens against a pool of liquidity
  */
@@ -72,9 +84,9 @@ export class TokenWhitelist {
   payer: Account;
 
   /**
-   * Token Whitelist Account
+   * Token Whitelist Map
    */
-  tokenWhitelistAccount: Account;
+  tokenWhitelistMap: Account;
 
   /**
    * Program Identifier for the Token Whitelist program
@@ -91,21 +103,21 @@ export class TokenWhitelist {
    *
    * @param connection The connection to use
    * @param payer Pays for the transaction
-   * @param tokenWhitelistAccount Account to store token sale info
+   * @param tokenWhitelistMap Account to store token whitelist map
    * @param tokenWhitelistProgramId The program ID of the token-whitelist program
    * @param tokenProgramId The program ID of the token program
    */
   constructor(
     connection: Connection,
     payer: Account,
-    tokenWhitelistAccount: Account,
+    tokenWhitelistMap: Account,
     tokenWhitelistProgramId: PublicKey,
     tokenProgramId: PublicKey,
   ) {
     Object.assign(this, {
       connection,
       payer,
-      tokenWhitelistAccount,
+      tokenWhitelistMap,
       tokenWhitelistProgramId,
       tokenProgramId,
     });
@@ -138,12 +150,12 @@ export class TokenWhitelist {
   }
 
   /**
-   * Initiaze Whitelist
+   * Initiaze Whitelist Map
    *
-   * @param initAuthority Account calling the init whitelist
+   * @param initAuthority Account calling the init whitelist map
    * @param whitelistSize Maximum number of whitelist accounts
    */
-  async initTokenWhitelist(
+  async initTokenWhitelistMap(
     initAuthority: Account,
     whitelistSize: number | Numberu64,
   ): Promise<TransactionSignature> {
@@ -154,11 +166,11 @@ export class TokenWhitelist {
         space: ACCOUNT_STATE_SPACE,
         lamports: await this.connection.getMinimumBalanceForRentExemption(ACCOUNT_STATE_SPACE, 'singleGossip'),
         fromPubkey: initAuthority.publicKey,
-        newAccountPubkey: this.tokenWhitelistAccount.publicKey,
+        newAccountPubkey: this.tokenWhitelistMap.publicKey,
         programId: this.tokenWhitelistProgramId,
     });
 
-    console.log(">>>>> Token Whitelist Account: " + this.tokenWhitelistAccount.publicKey + " <<<<<");
+    console.log(">>>>> Token Whitelist Map: " + this.tokenWhitelistMap.publicKey + " <<<<<");
 
     return await sendAndConfirmTransaction(
       'createTokenWhitelistAccount and initTokenWhitelist',
@@ -169,12 +181,53 @@ export class TokenWhitelist {
           this.tokenWhitelistProgramId,
           whitelistSize,
           initAuthority.publicKey,
-          this.tokenWhitelistAccount.publicKey,
+          this.tokenWhitelistMap.publicKey,
         ),
       ),
       this.payer,
       initAuthority,
-      this.tokenWhitelistAccount,
+      this.tokenWhitelistMap,
+    );
+  }
+
+  /**
+   * Initiaze Whitelist
+   *
+   * @param initAuthority Account calling the init whitelist
+   * @param tokenWhitelistAccount Account to store token whitelist
+   * @param whitelistSize Maximum number of whitelist accounts
+   */
+  async initTokenWhitelist(
+    initAuthority: Account,
+    tokenWhitelistAccount: Account,
+    whitelistSize: number | Numberu64,
+  ): Promise<TransactionSignature> {
+
+    const ACCOUNT_STATE_SPACE = 500000; // sufficient to hold at least 50 pubkeys in a map
+
+    const createWhitelistAccountInstruction = SystemProgram.createAccount({
+        space: ACCOUNT_STATE_SPACE,
+        lamports: await this.connection.getMinimumBalanceForRentExemption(ACCOUNT_STATE_SPACE, 'singleGossip'),
+        fromPubkey: initAuthority.publicKey,
+        newAccountPubkey: tokenWhitelistAccount.publicKey,
+        programId: this.tokenWhitelistProgramId,
+    });
+
+    return await sendAndConfirmTransaction(
+      'createTokenWhitelistAccount and initTokenWhitelist',
+      this.connection,
+      new Transaction().add(
+        createWhitelistAccountInstruction,
+        TokenWhitelist.initTokenWhitelistInstruction(
+          this.tokenWhitelistProgramId,
+          whitelistSize,
+          initAuthority.publicKey,
+          tokenWhitelistAccount.publicKey,
+        ),
+      ),
+      this.payer,
+      initAuthority,
+      tokenWhitelistAccount,
     );
   }
 
@@ -182,7 +235,7 @@ export class TokenWhitelist {
     tokenWhitelistProgramId: PublicKey,
     whitelistSize: number | Numberu64,
     initAuthority: PublicKey,
-    tokenWhitelistAccount: PublicKey,
+    tokenWhitelistPubkey: PublicKey,
   ): TransactionInstruction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u8('instruction'),
@@ -200,7 +253,7 @@ export class TokenWhitelist {
 
     const keys = [
       {pubkey: initAuthority, isSigner: true, isWritable: false},
-      {pubkey: tokenWhitelistAccount, isSigner: false, isWritable: true},
+      {pubkey: tokenWhitelistPubkey, isSigner: false, isWritable: true},
       {pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false},
     ];
     return new TransactionInstruction({
@@ -211,14 +264,16 @@ export class TokenWhitelist {
   }
 
   /**
-   * Add To Whitelist
+   * Add Whitelist To Map
    *
    * @param initAuthority Account calling the init whitelist
    * @param accountToAdd Account to be added to whitelist
+   * @param allocationAmount Maximum allocation amount in base tokens
    */
-  async addToWhitelist(
+  async addWhitelistToMap(
     initAuthority: Account,
     accountToAdd: PublicKey,
+    allocationAmount: number | Numberu64,
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       'AddToWhitelist',
@@ -227,8 +282,40 @@ export class TokenWhitelist {
         TokenWhitelist.addToWhitelistInstruction(
           this.tokenWhitelistProgramId,
           accountToAdd,
+          allocationAmount,
           initAuthority.publicKey,
-          this.tokenWhitelistAccount.publicKey,
+          this.tokenWhitelistMap.publicKey,
+        ),
+      ),
+      this.payer,
+      initAuthority,
+    );
+  }
+
+  /**
+   * Add To Whitelist
+   *
+   * @param initAuthority Account calling the init whitelist
+   * @param accountToAdd Account to be added to whitelist
+   * @param allocationAmount Maximum allocation amount in base tokens
+   * @param tokenWhitelistAccount Token Whitelist Account
+   */
+  async addToWhitelist(
+    initAuthority: Account,
+    accountToAdd: PublicKey,
+    allocationAmount: number | Numberu64,
+    tokenWhitelistAccount: PublicKey,
+  ): Promise<TransactionSignature> {
+    return await sendAndConfirmTransaction(
+      'AddToWhitelist',
+      this.connection,
+      new Transaction().add(
+        TokenWhitelist.addToWhitelistInstruction(
+          this.tokenWhitelistProgramId,
+          accountToAdd,
+          allocationAmount,
+          initAuthority.publicKey,
+          tokenWhitelistAccount,
         ),
       ),
       this.payer,
@@ -239,24 +326,27 @@ export class TokenWhitelist {
   static addToWhitelistInstruction(
     tokenWhitelistProgramId: PublicKey,
     accountToAdd: PublicKey,
+    allocationAmount: number | Numberu64,
     initAuthority: PublicKey,
-    tokenWhitelistAccount: PublicKey,
+    tokenWhitelistPubkey: PublicKey,
   ): TransactionInstruction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u8('instruction'),
+      Layout.uint64('allocation_amount'),
     ]);
 
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
         instruction: 1, // AddToWhitelist instruction
+        allocation_amount: new Numberu64(allocationAmount).toBuffer(),
       },
       data,
     );
 
     const keys = [
       {pubkey: initAuthority, isSigner: true, isWritable: false},
-      {pubkey: tokenWhitelistAccount, isSigner: false, isWritable: true},
+      {pubkey: tokenWhitelistPubkey, isSigner: false, isWritable: true},
       {pubkey: accountToAdd, isSigner: false, isWritable: false},
     ];
     return new TransactionInstruction({
@@ -271,10 +361,12 @@ export class TokenWhitelist {
    *
    * @param initAuthority Account calling the init whitelist
    * @param accountToRemove Account to be removed from whitelist
+   * @param tokenWhitelistAccount Token Whitelist Account
    */
   async removeFromWhitelist(
     initAuthority: Account,
     accountToRemove: PublicKey,
+    tokenWhitelistAccount: PublicKey,
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       'RemoveFromWhitelist',
@@ -284,7 +376,7 @@ export class TokenWhitelist {
           this.tokenWhitelistProgramId,
           accountToRemove,
           initAuthority.publicKey,
-          this.tokenWhitelistAccount.publicKey,
+          tokenWhitelistAccount,
         ),
       ),
       this.payer,
@@ -296,7 +388,7 @@ export class TokenWhitelist {
     tokenWhitelistProgramId: PublicKey,
     accountToRemove: PublicKey,
     initAuthority: PublicKey,
-    tokenWhitelistAccount: PublicKey,
+    tokenWhitelistPubkey: PublicKey,
   ): TransactionInstruction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u8('instruction'),
@@ -312,7 +404,7 @@ export class TokenWhitelist {
 
     const keys = [
       {pubkey: initAuthority, isSigner: true, isWritable: false},
-      {pubkey: tokenWhitelistAccount, isSigner: false, isWritable: true},
+      {pubkey: tokenWhitelistPubkey, isSigner: false, isWritable: true},
       {pubkey: accountToRemove, isSigner: false, isWritable: false},
     ];
     return new TransactionInstruction({
@@ -327,10 +419,12 @@ export class TokenWhitelist {
    *
    * @param initAuthority Account calling the init whitelist
    * @param destinationAccount Account to transfer lamports from the whitelist account
+   * @param tokenWhitelistAccount Token Whitelist Account
    */
   async closeWhitelistAccount(
     initAuthority: Account,
     destinationAccount: PublicKey,
+    tokenWhitelistAccount: PublicKey,
   ): Promise<TransactionSignature> {
     return await sendAndConfirmTransaction(
       'CloseWhitelistAccount',
@@ -340,7 +434,7 @@ export class TokenWhitelist {
           this.tokenWhitelistProgramId,
           destinationAccount,
           initAuthority.publicKey,
-          this.tokenWhitelistAccount.publicKey,
+          tokenWhitelistAccount,
         ),
       ),
       this.payer,
@@ -352,7 +446,7 @@ export class TokenWhitelist {
     tokenWhitelistProgramId: PublicKey,
     destinationAccount: PublicKey,
     initAuthority: PublicKey,
-    tokenWhitelistAccount: PublicKey,
+    tokenWhitelistPubkey: PublicKey,
   ): TransactionInstruction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u8('instruction'),
@@ -368,7 +462,7 @@ export class TokenWhitelist {
 
     const keys = [
       {pubkey: initAuthority, isSigner: true, isWritable: false},
-      {pubkey: tokenWhitelistAccount, isSigner: false, isWritable: true},
+      {pubkey: tokenWhitelistPubkey, isSigner: false, isWritable: true},
       {pubkey: destinationAccount, isSigner: false, isWritable: true},
     ];
     return new TransactionInstruction({

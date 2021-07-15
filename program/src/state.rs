@@ -124,15 +124,3 @@ fn transform_u32_to_array_of_u8(x: u32) -> [u8; 4] {
     let b4: u8 = (x & 0xff) as u8;
     return [b4, b3, b2, b1];
 }
-
-/// Struct for small data
-#[derive(Clone, Debug, Default, BorshSerialize, BorshDeserialize, PartialEq)]
-pub struct SmallData {
-    /// The data contained by the account, could be anything or serializable
-    pub bytes: [u8; Self::DATA_SIZE],
-}
-
-impl SmallData {
-    /// small data for easy testing
-    pub const DATA_SIZE: usize = 8;
-}
