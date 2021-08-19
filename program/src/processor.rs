@@ -190,6 +190,11 @@ impl Processor {
             msg!("{}", account_to_reset.key);
             return Err(TokenWhitelistError::NotOwner.into());
         }
+        if !token_whitelist_state.contains_key(&account_to_reset.key.to_string()) {
+            msg!("attempting to reset non-whitelisted account");
+            msg!(&account_to_reset.key.to_string());
+            return Err(ProgramError::InvalidAccountData);
+        }
 
         let whitelist_amount: u64 = 0;
         token_whitelist_state.add_keypair(&account_to_reset.key.to_string(), &whitelist_amount);
