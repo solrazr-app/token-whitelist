@@ -31,20 +31,20 @@ impl IsInitialized for TokenWhitelist {
 }
 
 impl TokenWhitelist {
-    pub fn add_keypair(&mut self, key: &String, value: &u64) {
+    pub fn add_keypair(&mut self, key: &str, value: &u64) {
         self.whitelist_map.insert(key.to_string(), *value);
     }
 
-    pub fn drop_key(&mut self, key: &String) {
+    pub fn drop_key(&mut self, key: &str) {
         self.whitelist_map.remove(key);
     }
 
-    pub fn contains_key(&mut self, key: &String) -> bool {
-        return self.whitelist_map.contains_key(key);
+    pub fn contains_key(&mut self, key: &str) -> bool {
+        self.whitelist_map.contains_key(key)
     }
 
-    pub fn get(&mut self, key: &String) -> Option<&u64> {
-        return self.whitelist_map.get(key);
+    pub fn get(&mut self, key: &str) -> Option<&u64> {
+        self.whitelist_map.get(key)
     }
 
     pub fn clear_data(&mut self) {
@@ -126,5 +126,6 @@ fn transform_u32_to_array_of_u8(x: u32) -> [u8; 4] {
     let b2: u8 = ((x >> 16) & 0xff) as u8;
     let b3: u8 = ((x >> 8) & 0xff) as u8;
     let b4: u8 = (x & 0xff) as u8;
-    return [b4, b3, b2, b1];
+
+    [b4, b3, b2, b1]
 }

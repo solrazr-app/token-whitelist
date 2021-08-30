@@ -100,22 +100,22 @@ impl TokenWhitelistInstruction {
     /// Packs a [TokenWhitelistInstruction](enum.TokenWhitelistInstruction.html) into a byte buffer.
     pub fn pack(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(size_of::<Self>());
-        match self {
-            &Self::InitTokenWhitelist {max_whitelist_size} => {
+        match *self {
+            Self::InitTokenWhitelist {max_whitelist_size} => {
                 buf.push(0);
                 buf.extend_from_slice(&max_whitelist_size.to_le_bytes());
             }
-            &Self::AddToWhitelist {allocation_amount} => {
+            Self::AddToWhitelist {allocation_amount} => {
                 buf.push(1);
                 buf.extend_from_slice(&allocation_amount.to_le_bytes());
             }
-            &Self::RemoveFromWhitelist{} => {
+            Self::RemoveFromWhitelist{} => {
                 buf.push(2);
             }
-            &Self::SetAllocationToZero{} => {
+            Self::SetAllocationToZero{} => {
                 buf.push(3);
             }
-            &Self::CloseWhitelistAccount{} => {
+            Self::CloseWhitelistAccount{} => {
                 buf.push(4);
             }
         };
