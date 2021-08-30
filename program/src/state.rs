@@ -47,6 +47,10 @@ impl TokenWhitelist {
         return self.whitelist_map.get(key);
     }
 
+    pub fn clear_data(&mut self) {
+        self.whitelist_map.clear();
+    }
+
     pub fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
         let src = array_ref![src, 0, ACCOUNT_STATE_SPACE];
         let (

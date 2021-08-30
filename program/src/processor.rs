@@ -223,10 +223,14 @@ impl Processor {
 
         let destination_starting_lamports = destination_account.lamports();
         let account_lamports = token_whitelist_account.lamports();
-        **token_whitelist_account.lamports.borrow_mut() = 0;
+        
         **destination_account.lamports.borrow_mut() = destination_starting_lamports
             .checked_add(account_lamports)
             .ok_or(TokenWhitelistError::Overflow)?;
+        **token_whitelist_account.lamports.borrow_mut() = 0;
+
+        token_whitelist_state.clear_map();
+        token_whitelist_state.pack_into_slice(&mut token_whitelist_account.data.borrow_mut());
 
         Ok(())
     }
