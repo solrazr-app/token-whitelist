@@ -213,7 +213,7 @@ impl Processor {
         let token_whitelist_account = next_account_info(account_info_iter)?;
         let destination_account = next_account_info(account_info_iter)?;
 
-        let mut token_whitelist_state = TokenWhitelist::unpack_from_slice(&token_whitelist_account.data.borrow())?;
+        let token_whitelist_state = TokenWhitelist::unpack_from_slice(&token_whitelist_account.data.borrow())?;
         if !token_whitelist_state.is_initialized() {
             msg!("token whitelist needs to be initialized before attempting to close");
             return Err(TokenWhitelistError::TokenWhitelistNotInit.into());
@@ -229,8 +229,10 @@ impl Processor {
             .ok_or(TokenWhitelistError::Overflow)?;
         **token_whitelist_account.lamports.borrow_mut() = 0;
 
-        token_whitelist_state.clear_data();
-        token_whitelist_state.pack_into_slice(&mut token_whitelist_account.data.borrow_mut());
+        // token_whitelist_state.clear_data();
+        // token_whitelist_state.pack_into_slice(&mut token_whitelist_account.data.borrow_mut());
+        
+        token_whitelist_account.data.borrow_mut().iter_mut().for_each(|byte| *byte = 0);
 
         Ok(())
     }
